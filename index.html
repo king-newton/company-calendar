@@ -169,10 +169,18 @@
                                 const isApproved = (row.status === '已核准' || row.step2Status === '已核准');
                                 return leaveStart >= CUT_OFF_DATE && isApproved;
                             })
-                            .map(row => {
-                                // 抽出YYYY-MM-DD格式
-                                const startDate = row.startTime.split('T')[0];
-                                const endDate = row.endTime ? row.endTime.split('T')[0] : startDate;
+                           .map(row => {
+                                // 安全解析 Google Sheets 傳回的日期格式
+                                const sDate = new Date(row.startTime);
+                                const startDate = !isNaN(sDate.getTime()) 
+                                    ? `${sDate.getFullYear()}-${String(sDate.getMonth() + 1).padStart(2, '0')}-${String(sDate.getDate()).padStart(2, '0')}` 
+                                    : row.startTime.split('T')[0];
+                                
+                                const eDate = new Date(row.endTime);
+                                const endDate = !isNaN(eDate.getTime()) 
+                                    ? `${eDate.getFullYear()}-${String(eDate.getMonth() + 1).padStart(2, '0')}-${String(eDate.getDate()).padStart(2, '0')}` 
+                                    : (row.endTime ? row.endTime.split('T')[0] : startDate);
+
                                 return {
                                     id: row.id,
                                     name: row.name,
