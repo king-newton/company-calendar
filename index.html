@@ -27,6 +27,7 @@
         .hide-sat th:nth-child(7), .hide-sat td:nth-child(7) { display: none !important; }
 
         .leave-record { padding: 3px 6px; margin-top: 3px; border-radius: 3px; font-size: 0.85em; text-align: left; border-left: 4px solid #999; background: #eee; word-break: break-all; }
+        .trip-record { background-color: #00897b !important; color: white !important; border-left: 4px solid #004d40 !important; } /* 出差單專屬顏色：深青綠 */
         .activity-record { background-color: #673ab7 !important; color: white !important; }
         .golden-record { background-color: #0d47a1 !important; color: white !important; }
         .holiday-record { background-color: #e91e63 !important; color: white !important; }
@@ -129,8 +130,12 @@
         const SUGGEST_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSk18e6JMlqZrTZkMdMybrvXSX-HuZ5vLTawqbU116-Xwd9DHUf25hAjOO7HxQ6mJ6E6K0ll8Eu-Iy8/pub?gid=1793548004&single=true&output=csv';
         const GOOGLE_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSk18e6JMlqZrTZkMdMybrvXSX-HuZ5vLTawqbU116-Xwd9DHUf25hAjOO7HxQ6mJ6E6K0ll8Eu-Iy8/pub?gid=0&single=true&output=csv';
         
-        // 新的單一試算表請假系統 API 網址 (用於 2026/11/06 起的資料)
+        // 請假系統 GAS API 網址
         const NEW_GAS_API_URL = 'https://script.google.com/macros/s/AKfycby5eWga0igixQ-bkyFwx1f1-t455YhWClHs7NKOL4YUkyD-bZjdQE8YYwT5eafa3ELY-w/exec';
+        
+        // 出差系統 GAS API 網址
+        const TRIP_GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxTS3PsYZxik44YUGnLxtfS9UsdlK-6P_EHrcHjONLoEqsD2sENhXyvQLGaEGzMfZAxZQ/exec';
+        
         const CUT_OFF_DATE = new Date('2026-11-06T00:00:00');
         
         const nameList = ["全部人員", "金牛頓", "ERIC", "何成偉", "方順黌", "王冠峯", "余品橋", "李佩娟", "高欣宜", "陳秀燕", "陳品鈞", "陳靖昂", "陳慧真", "曾晨杰", "楊添仰", "詹淑敏", "戴政宏", "蘇威丞"];
@@ -140,7 +145,7 @@
 
         async function fetchData() {
             try {
-                // 1. 抓取 2026/11/05 以前的舊資料
+                // 1. 抓取 2026/11/05 以前的舊請假資料
                 const resL = await fetch(GOOGLE_CSV_URL);
                 const dataL = await resL.text();
                 const rowsL = dataL.split('\n').slice(1);
@@ -153,24 +158,21 @@
                     return { id: 'old_' + index, name: cols[0], type: cols[1], start: cols[2], end: cols[3], displayDuration: durStr, rate: rate, note: cols[5] || '' };
                 });
 
-                // 過濾：只保留 2026/11/05 (含) 之前的舊資料
                 oldRecords = oldRecords.filter(r => new Date(r.start) < CUT_OFF_DATE);
 
-                // 2. 抓取 2026/11/06 起的新單一試算表請假紀錄
+                // 2. 抓取 2026/11/06 起的新請假紀錄 (已核准)
                 let newRecords = [];
                 try {
-                    const resNew = await fetch(`${NEW_GAS_API_URL}?action=getAllLeavesForCalendar`);
+                    const resNew = await fetch(`${NEW_GAS_API_URL}?action=getAllLeavesForCalendar&t=${new Date().getTime()}`);
                     const jsonNew = await resNew.json();
                     if (jsonNew.status === 'success' && jsonNew.data) {
                         newRecords = jsonNew.data
                             .filter(row => {
                                 const leaveStart = new Date(row.startTime);
-                                // 必須大於等於 2026/11/06 且狀態為已核准
                                 const isApproved = (row.status === '已核准' || row.step2Status === '已核准');
                                 return leaveStart >= CUT_OFF_DATE && isApproved;
                             })
-                           .map(row => {
-                                // 安全解析 Google Sheets 傳回的日期格式
+                            .map(row => {
                                 const sDate = new Date(row.startTime);
                                 const startDate = !isNaN(sDate.getTime()) 
                                     ? `${sDate.getFullYear()}-${String(sDate.getMonth() + 1).padStart(2, '0')}-${String(sDate.getDate()).padStart(2, '0')}` 
@@ -184,12 +186,12 @@
                                 return {
                                     id: row.id,
                                     name: row.name,
-                                    type: row.type,
+                                    type: row.type || '請假',
                                     start: startDate,
                                     end: endDate,
                                     displayDuration: row.days + "天",
                                     rate: 1,
-                                    note: row.reason || ''
+                                    note: row.reason || '' // 姓名 + 請假事由
                                 };
                             });
                     }
@@ -197,10 +199,38 @@
                     console.error("載入新請假系統資料失敗", err);
                 }
 
-                // 3. 合併新舊資料
-                leaveRecords = [...oldRecords, ...newRecords];
+                // 3. 抓取【出差單】紀錄 (僅抓取：已核准)
+                let tripRecords = [];
+                try {
+                    const resTrip = await fetch(`${TRIP_GAS_API_URL}?action=getBusinessTrips&t=${new Date().getTime()}`);
+                    const jsonTrip = await resTrip.json();
+                    if (jsonTrip.status === 'success' && Array.isArray(jsonTrip.data)) {
+                        tripRecords = jsonTrip.data
+                            .filter(row => String(row.status || '').trim() === '已核准') // 只抓已核准出差單
+                            .map(row => {
+                                const startDate = row.startDate || '';
+                                const endDate = row.endDate || startDate;
+                                const location = row.route || row.reason || ''; // 抓取：行程地點
+                                return {
+                                    id: row.id || ('trip_' + Math.random()),
+                                    name: row.empName || '',
+                                    type: '出差',
+                                    start: startDate,
+                                    end: endDate,
+                                    displayDuration: (row.days || 1) + "天",
+                                    rate: 1,
+                                    note: `出差: ${location}` // 顯示為：姓名-出差: 行程地點
+                                };
+                            });
+                    }
+                } catch (err) {
+                    console.error("載入出差單紀錄失敗", err);
+                }
 
-                // 4. 抓取建議事項
+                // 4. 合併舊請假、新請假、出差紀錄
+                leaveRecords = [...oldRecords, ...newRecords, ...tripRecords];
+
+                // 5. 抓取建議事項
                 const resS = await fetch(SUGGEST_CSV_URL);
                 const dataS = await resS.text();
                 const rowsS = dataS.split('\n').slice(1);
@@ -239,7 +269,7 @@
             let res = leaveRecords.filter(r => ((r.start >= s && r.start <= e) || (r.end >= s && r.end <= e)) && (qName === "全部人員" || r.name === qName));
             res.sort((a, b) => a.start < b.start ? -1 : 1);
             let stats = {};
-            let h = `<table><thead><tr><th>姓名</th><th>事別</th><th>開始日期</th><th>結束日期</th><th>時數/天數</th><th>說明/原因</th></tr></thead><tbody>`;
+            let h = `<table><thead><tr><th>姓名</th><th>類別/事由</th><th>開始日期</th><th>結束日期</th><th>時數/天數</th><th>說明/地點</th></tr></thead><tbody>`;
             res.forEach(r => {
                 const totalDays = calculateDays(r);
                 stats[r.type] = (stats[r.type] || 0) + totalDays;
@@ -257,7 +287,7 @@
             if (!s || !e) return alert("請先選取日期範圍並執行查詢後再匯出");
             let res = leaveRecords.filter(r => ((r.start >= s && r.start <= e) || (r.end >= s && r.end <= e)) && (qName === "全部人員" || r.name === qName));
             if (res.length === 0) return alert("目前查詢範圍內無資料可匯出");
-            let csvContent = "\ufeff姓名,事別,開始日期,結束日期,時數/天數,說明/原因\n";
+            let csvContent = "\ufeff姓名,類別,開始日期,結束日期,時數/天數,說明/地點\n";
             res.forEach(r => { 
                 csvContent += `${r.name},${r.type},${r.start},${r.end},${calculateDays(r)}天,${r.note.replace(/,/g, "，")}\n`; 
             });
@@ -298,7 +328,7 @@
                         row += `<td style="${isToday ? 'background-color: #fff9c4;' : ''}">
                             <div style="font-weight:bold;text-align:center;">${date}</div>
                             ${allRecords.map(r => {
-                                let tc = (r.name === '金牛頓') ? 'golden-record' : (r.type === '活動' ? 'activity-record' : (r.type === '假期' ? 'holiday-record' : 'leave-record'));
+                                let tc = (r.name === '金牛頓') ? 'golden-record' : (r.type === '出差' ? 'trip-record' : (r.type === '活動' ? 'activity-record' : (r.type === '假期' ? 'holiday-record' : 'leave-record')));
                                 return `<div class="leave-record ${tc}">${r.name}-${r.note}</div>`;
                             }).join('')}
                         </td>`;
@@ -309,7 +339,7 @@
                                 <span class="${(j===0||j===6)?'card-weekend':''}">(週${weekDays[j]})</span>
                             </div>
                             ${allRecords.length > 0 ? allRecords.map(r => {
-                                let tc = (r.name === '金牛頓') ? 'golden-record' : (r.type === '活動' ? 'activity-record' : (r.type === '假期' ? 'holiday-record' : 'leave-record'));
+                                let tc = (r.name === '金牛頓') ? 'golden-record' : (r.type === '出差' ? 'trip-record' : (r.type === '活動' ? 'activity-record' : (r.type === '假期' ? 'holiday-record' : 'leave-record')));
                                 return `<div class="leave-record ${tc}">${r.name}-${r.note}</div>`;
                             }).join('') : '<div style="color:#ccc; font-size:0.8em;">暫無活動</div>'}
                         </div>`;
