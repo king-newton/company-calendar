@@ -1,24 +1,25 @@
 <!DOCTYPE html>
-<html lang="zh-TW"><head>
+<html lang="zh-TW">
+<head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>金牛頓公司活動行事曆</title>
     <style>
         /* --- 電腦版樣式：完全保持不動 --- */
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; background-color: #f8f9fa; max-width: 1200px; margin: 0 auto; line-height: 1.6; }
         h2 { color: #0d47a1; border-bottom: 3px solid #e0e0e0; padding-bottom: 5px; margin-top: 5px; margin-bottom: 15px; }
-        
+
         select, input[type="date"], input[type="text"], input[type="number"], textarea {
             height: 40px; padding: 8px 12px; border: 1px solid #ced4da; border-radius: 4px; box-sizing: border-box; font-size: 14px; vertical-align: middle;
         }
         table { width: 100%; border-collapse: collapse; background-color: white; margin-bottom: 20px; }
         th, td { border: 1px solid #dee2e6; padding: 10px; text-align: center; }
         th { background-color: #e3f2fd; color: #0d47a1; }
-        
+
         #calendarContainer { margin-top: 30px; border: 1px solid #0d47a1; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border-radius: 8px; overflow: hidden; background: white; }
         #calendarHeader { background-color: #0d47a1; color: white; padding: 15px; font-size: 1.5em; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
         #calendarHeader button { background: rgba(255,255,255,0.2); border: 1px solid white; color: white; padding: 5px 12px; cursor: pointer; border-radius: 4px; font-size: 0.6em; }
-        
+
         #calendar td { height: 110px; vertical-align: top; width: 14.28%; }
         #calendar td:nth-child(1), #calendar th:nth-child(1) { color: #d32f2f; }
         #calendar td:nth-child(7), #calendar th:nth-child(7) { color: #1565c0; }
@@ -27,7 +28,7 @@
         .hide-sat th:nth-child(7), .hide-sat td:nth-child(7) { display: none !important; }
 
         .leave-record { padding: 3px 6px; margin-top: 3px; border-radius: 3px; font-size: 0.85em; text-align: left; border-left: 4px solid #999; background: #eee; word-break: break-all; }
-        .trip-record { background-color: #00897b !important; color: white !important; border-left: 4px solid #004d40 !important; } /* 出差單專屬顏色：深青綠 */
+        .trip-record { background-color: #00897b !important; color: white !important; border-left: 4px solid #004d40 !important; }
         .activity-record { background-color: #673ab7 !important; color: white !important; }
         .golden-record { background-color: #0d47a1 !important; color: white !important; }
         .holiday-record { background-color: #e91e63 !important; color: white !important; }
@@ -37,15 +38,15 @@
 
         /* --- 手機版專屬修正區 (只在螢幕 600px 以下生效) --- */
         #mobileCards { display: none; padding: 10px; background: #f1f3f4; }
-        
+
         @media (max-width: 600px) {
             #calendar { display: none !important; }
             #mobileCards { display: block; }
-            
-            #currentYearMonth { 
+
+            #currentYearMonth {
                 font-size: 0.8em !important;
                 white-space: nowrap !important;
-                margin: 0 5px; 
+                margin: 0 5px;
             }
             #calendarHeader {
                 padding: 10px 5px !important;
@@ -68,17 +69,17 @@
 
     <div id="calendarContainer">
         <div id="calendarHeader">
-            <button onclick="changeMonth(-1)">◀ 上個月</button>
+            <button type="button" onclick="changeMonth(-1)">◀ 上個月</button>
             <span id="currentYearMonth">2026年 3月</span>
-            <button onclick="changeMonth(1)">下個月 ▶</button>
+            <button type="button" onclick="changeMonth(1)">下個月 ▶</button>
         </div>
         <table id="calendar">
             <thead>
                 <tr>
                     <th>日</th>
-                    <th><button onclick="toggleSun()" style="cursor:pointer; margin-right:5px;">◀</button>一</th>
+                    <th><button type="button" onclick="toggleSun()" style="cursor:pointer; margin-right:5px;">◀</button>一</th>
                     <th>二</th><th>三</th><th>四</th>
-                    <th>五<button onclick="toggleSat()" style="cursor:pointer; margin-left:5px;">▶</button></th>
+                    <th>五<button type="button" onclick="toggleSat()" style="cursor:pointer; margin-left:5px;">▶</button></th>
                     <th>六</th>
                 </tr>
             </thead>
@@ -100,11 +101,11 @@
         <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
             <select id="queryNameSelect" style="min-width:150px; height:40px;"></select>
             <input type="date" id="queryStartDate"> 至 <input type="date" id="queryEndDate">
-            <button onclick="queryRecords()" style="height:40px; background:#007bff; color:white; border:none; padding:0 20px; border-radius:4px; cursor:pointer;">查詢</button>
-            <button onclick="exportToExcel()" style="height:40px; background:#ef6c00; color:white; border:none; padding:0 15px; border-radius:4px; cursor:pointer;">📊 查詢匯出</button>
-            <button onclick="saveFullHTML()" style="height:40px; background:#2e7d32; color:white; border:none; padding:0 15px; border-radius:4px; cursor:pointer;">💾 儲存</button>
-            <button onclick="window.print()" style="height:40px; background:#607d8b; color:white; border:none; padding:0 15px; border-radius:4px; cursor:pointer;">🖨️ 列印</button>
-            <button onclick="toggleAllWeekend()" style="height:40px; background:#455a64; color:white; border:none; padding:0 15px; border-radius:4px; cursor:pointer;">🗓️ 顯示/隱藏週末</button>
+            <button type="button" onclick="queryRecords()" style="height:40px; background:#007bff; color:white; border:none; padding:0 20px; border-radius:4px; cursor:pointer;">查詢</button>
+            <button type="button" onclick="exportToExcel()" style="height:40px; background:#ef6c00; color:white; border:none; padding:0 15px; border-radius:4px; cursor:pointer;">📊 查詢匯出</button>
+            <button type="button" onclick="saveFullHTML()" style="height:40px; background:#2e7d32; color:white; border:none; padding:0 15px; border-radius:4px; cursor:pointer;">💾 儲存</button>
+            <button type="button" onclick="window.print()" style="height:40px; background:#607d8b; color:white; border:none; padding:0 15px; border-radius:4px; cursor:pointer;">🖨️ 列印</button>
+            <button type="button" onclick="toggleAllWeekend()" style="height:40px; background:#455a64; color:white; border:none; padding:0 15px; border-radius:4px; cursor:pointer;">🗓️ 顯示/隱藏週末</button>
         </div>
     </div>
 
@@ -129,19 +130,38 @@
         let currentDisplayDate = new Date();
         const SUGGEST_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSk18e6JMlqZrTZkMdMybrvXSX-HuZ5vLTawqbU116-Xwd9DHUf25hAjOO7HxQ6mJ6E6K0ll8Eu-Iy8/pub?gid=1793548004&single=true&output=csv';
         const GOOGLE_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSk18e6JMlqZrTZkMdMybrvXSX-HuZ5vLTawqbU116-Xwd9DHUf25hAjOO7HxQ6mJ6E6K0ll8Eu-Iy8/pub?gid=0&single=true&output=csv';
-        
+
         // 請假系統 GAS API 網址
         const NEW_GAS_API_URL = 'https://script.google.com/macros/s/AKfycby5eWga0igixQ-bkyFwx1f1-t455YhWClHs7NKOL4YUkyD-bZjdQE8YYwT5eafa3ELY-w/exec';
-        
+
         // 出差系統 GAS API 網址
         const TRIP_GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxTS3PsYZxik44YUGnLxtfS9UsdlK-6P_EHrcHjONLoEqsD2sENhXyvQLGaEGzMfZAxZQ/exec';
-        
+
         const CUT_OFF_DATE = new Date('2026-11-06T00:00:00');
-        
+
         const nameList = ["全部人員", "金牛頓", "ERIC", "何成偉", "方順黌", "王冠峯", "余品橋", "李佩娟", "高欣宜", "陳秀燕", "陳品鈞", "陳靖昂", "陳慧真", "曾晨杰", "楊添仰", "詹淑敏", "戴政宏", "蘇威丞"];
 
         let leaveRecords = [];
         let suggestions = [];
+
+        function normalizeDateStr(val) {
+            if (!val) return '';
+            const str = String(val).trim().split('T')[0].replace(/\//g, '-');
+            const parts = str.split('-');
+            if (parts.length === 3 && parts[0].length === 4) {
+                return `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+            }
+            const dt = new Date(val);
+            if (!isNaN(dt.getTime())) {
+                return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+            }
+            return str;
+        }
+
+        function isApprovedStatus(statusVal) {
+            const st = String(statusVal || '').trim();
+            return st === '已核准' || (st.includes('核准') && !st.includes('待') && !st.includes('未') && !st.includes('駁回'));
+        }
 
         async function fetchData() {
             try {
@@ -155,43 +175,46 @@
                     let rate = 1;
                     if (durStr.includes("半天")) rate = 0.5;
                     else if (durStr.includes("小時")) rate = parseFloat(durStr) / 8;
-                    return { id: 'old_' + index, name: cols[0], type: cols[1], start: cols[2], end: cols[3], displayDuration: durStr, rate: rate, note: cols[5] || '' };
-                });
+                    return {
+                        id: 'old_' + index,
+                        name: (cols[0] || '').trim(),
+                        type: (cols[1] || '請假').trim(),
+                        start: normalizeDateStr(cols[2]),
+                        end: normalizeDateStr(cols[3]) || normalizeDateStr(cols[2]),
+                        displayDuration: durStr,
+                        rate: rate,
+                        note: (cols[5] || '').trim()
+                    };
+                }).filter(r => r.start);
 
-                oldRecords = oldRecords.filter(r => new Date(r.start) < CUT_OFF_DATE);
+                oldRecords = oldRecords.filter(r => new Date(r.start + 'T00:00:00') < CUT_OFF_DATE);
 
                 // 2. 抓取 2026/11/06 起的新請假紀錄 (已核准)
                 let newRecords = [];
                 try {
                     const resNew = await fetch(`${NEW_GAS_API_URL}?action=getAllLeavesForCalendar&t=${new Date().getTime()}`);
                     const jsonNew = await resNew.json();
-                    if (jsonNew.status === 'success' && jsonNew.data) {
+                    if (jsonNew.status === 'success' && Array.isArray(jsonNew.data)) {
                         newRecords = jsonNew.data
                             .filter(row => {
-                                const leaveStart = new Date(row.startTime);
-                                const isApproved = (row.status === '已核准' || row.step2Status === '已核准');
+                                const startStr = normalizeDateStr(row.startTime);
+                                if (!startStr) return false;
+                                const leaveStart = new Date(startStr + 'T00:00:00');
+                                const isApproved = isApprovedStatus(row.status) || isApprovedStatus(row.step2Status);
                                 return leaveStart >= CUT_OFF_DATE && isApproved;
                             })
                             .map(row => {
-                                const sDate = new Date(row.startTime);
-                                const startDate = !isNaN(sDate.getTime()) 
-                                    ? `${sDate.getFullYear()}-${String(sDate.getMonth() + 1).padStart(2, '0')}-${String(sDate.getDate()).padStart(2, '0')}` 
-                                    : row.startTime.split('T')[0];
-                                
-                                const eDate = new Date(row.endTime);
-                                const endDate = !isNaN(eDate.getTime()) 
-                                    ? `${eDate.getFullYear()}-${String(eDate.getMonth() + 1).padStart(2, '0')}-${String(eDate.getDate()).padStart(2, '0')}` 
-                                    : (row.endTime ? row.endTime.split('T')[0] : startDate);
-
+                                const startDate = normalizeDateStr(row.startTime);
+                                const endDate = normalizeDateStr(row.endTime) || startDate;
                                 return {
                                     id: row.id,
-                                    name: row.name,
-                                    type: row.type || '請假',
+                                    name: String(row.name || '').trim(),
+                                    type: String(row.type || '請假').trim(),
                                     start: startDate,
                                     end: endDate,
-                                    displayDuration: row.days + "天",
+                                    displayDuration: (row.days || 1) + "天",
                                     rate: 1,
-                                    note: row.reason || '' // 姓名 + 請假事由
+                                    note: String(row.reason || '').trim()
                                 };
                             });
                     }
@@ -206,22 +229,23 @@
                     const jsonTrip = await resTrip.json();
                     if (jsonTrip.status === 'success' && Array.isArray(jsonTrip.data)) {
                         tripRecords = jsonTrip.data
-                            .filter(row => String(row.status || '').trim() === '已核准') // 只抓已核准出差單
+                            .filter(row => isApprovedStatus(row.status))
                             .map(row => {
-                                const startDate = row.startDate || '';
-                                const endDate = row.endDate || startDate;
-                                const location = row.route || row.reason || ''; // 抓取：行程地點
+                                const startDate = normalizeDateStr(row.startDate || row.startTime || '');
+                                const endDate = normalizeDateStr(row.endDate || row.endTime || '') || startDate;
+                                const location = String(row.route || row.reason || '').trim();
                                 return {
                                     id: row.id || ('trip_' + Math.random()),
-                                    name: row.empName || '',
+                                    name: String(row.empName || row.name || '').trim(),
                                     type: '出差',
                                     start: startDate,
                                     end: endDate,
                                     displayDuration: (row.days || 1) + "天",
                                     rate: 1,
-                                    note: `出差: ${location}` // 顯示為：姓名-出差: 行程地點
+                                    note: `出差: ${location}`
                                 };
-                            });
+                            })
+                            .filter(r => r.start && r.end);
                     }
                 } catch (err) {
                     console.error("載入出差單紀錄失敗", err);
@@ -241,13 +265,15 @@
 
                 renderCalendar(currentDisplayDate.getFullYear(), currentDisplayDate.getMonth() + 1);
                 renderSuggestions();
-            } catch (e) { console.error("資料讀取失敗", e); }
+            } catch (e) {
+                console.error("資料讀取失敗", e);
+            }
         }
 
         function toggleSun() { document.getElementById('calendarContainer').classList.toggle('hide-sun'); }
         function toggleSat() { document.getElementById('calendarContainer').classList.toggle('hide-sat'); }
-        
-        function toggleAllWeekend() { 
+
+        function toggleAllWeekend() {
             const el = document.getElementById('calendarContainer');
             if (el.classList.contains('hide-sun') || el.classList.contains('hide-sat')) {
                 el.classList.remove('hide-sun', 'hide-sat');
@@ -257,8 +283,8 @@
         }
 
         function calculateDays(r) {
-            const d1 = new Date(r.start);
-            const d2 = new Date(r.end);
+            const d1 = new Date(r.start + 'T00:00:00');
+            const d2 = new Date(r.end + 'T00:00:00');
             const diffDays = Math.ceil(Math.abs(d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
             return diffDays * r.rate;
         }
@@ -266,7 +292,7 @@
         function queryRecords() {
             const qName = document.getElementById('queryNameSelect').value, s = document.getElementById('queryStartDate').value, e = document.getElementById('queryEndDate').value;
             if (!s || !e) return alert("請選日期範圍後再執行查詢");
-            let res = leaveRecords.filter(r => ((r.start >= s && r.start <= e) || (r.end >= s && r.end <= e)) && (qName === "全部人員" || r.name === qName));
+            let res = leaveRecords.filter(r => ((r.start >= s && r.start <= e) || (r.end >= s && r.end <= e) || (r.start <= s && r.end >= e)) && (qName === "全部人員" || r.name === qName));
             res.sort((a, b) => a.start < b.start ? -1 : 1);
             let stats = {};
             let h = `<table><thead><tr><th>姓名</th><th>類別/事由</th><th>開始日期</th><th>結束日期</th><th>時數/天數</th><th>說明/地點</th></tr></thead><tbody>`;
@@ -285,11 +311,11 @@
         function exportToExcel() {
             const qName = document.getElementById('queryNameSelect').value, s = document.getElementById('queryStartDate').value, e = document.getElementById('queryEndDate').value;
             if (!s || !e) return alert("請先選取日期範圍並執行查詢後再匯出");
-            let res = leaveRecords.filter(r => ((r.start >= s && r.start <= e) || (r.end >= s && r.end <= e)) && (qName === "全部人員" || r.name === qName));
+            let res = leaveRecords.filter(r => ((r.start >= s && r.start <= e) || (r.end >= s && r.end <= e) || (r.start <= s && r.end >= e)) && (qName === "全部人員" || r.name === qName));
             if (res.length === 0) return alert("目前查詢範圍內無資料可匯出");
             let csvContent = "\ufeff姓名,類別,開始日期,結束日期,時數/天數,說明/地點\n";
-            res.forEach(r => { 
-                csvContent += `${r.name},${r.type},${r.start},${r.end},${calculateDays(r)}天,${r.note.replace(/,/g, "，")}\n`; 
+            res.forEach(r => {
+                csvContent += `${r.name},${r.type},${r.start},${r.end},${calculateDays(r)}天,${String(r.note || '').replace(/,/g, "，")}\n`;
             });
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
@@ -304,10 +330,10 @@
             document.getElementById('currentYearMonth').textContent = `${year}年 ${month}月`;
             const today = new Date();
             const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-            
+
             let html = '';
             let cardsHtml = '';
-            
+
             const firstDay = new Date(year, month - 1, 1).getDay();
             const lastDate = new Date(year, month, 0).getDate();
             const weekDays = ['日','一','二','三','四','五','六'];
@@ -324,7 +350,7 @@
                         const records = leaveRecords.filter(r => ds >= r.start && ds <= r.end);
                         const dayHolidays = holidayList.filter(h => h.date === ds);
                         const allRecords = [...records, ...dayHolidays.map(h => ({ name: "國定假日", note: h.name, type: '假期' }))];
-                        
+
                         row += `<td style="${isToday ? 'background-color: #fff9c4;' : ''}">
                             <div style="font-weight:bold;text-align:center;">${date}</div>
                             ${allRecords.map(r => {
@@ -332,7 +358,7 @@
                                 return `<div class="leave-record ${tc}">${r.name}-${r.note}</div>`;
                             }).join('')}
                         </td>`;
-                        
+
                         cardsHtml += `<div class="card">
                             <div class="card-date">
                                 <span>${month}月${date}日</span>
@@ -360,7 +386,7 @@
         }
 
         function changeMonth(d) { currentDisplayDate.setMonth(currentDisplayDate.getMonth() + d); renderCalendar(currentDisplayDate.getFullYear(), currentDisplayDate.getMonth() + 1); }
-        
+
         function saveFullHTML() {
             const queryArea = document.getElementById('queryResultArea');
             const originalContent = queryArea.innerHTML;
@@ -376,7 +402,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             const qSel = document.getElementById('queryNameSelect');
             nameList.forEach(n => qSel.add(new Option(n, n)));
-            fetchData(); 
+            fetchData();
         });
     </script>
 </body>
