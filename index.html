@@ -144,18 +144,37 @@
         let leaveRecords = [];
         let suggestions = [];
 
-        function normalizeDateStr(val) {
+        function normalizeDateStr(val, fallbackYear) {
             if (!val) return '';
-            const str = String(val).trim().split('T')[0].replace(/\//g, '-');
-            const parts = str.split('-');
-            if (parts.length === 3 && parts[0].length === 4) {
-                return `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+            const raw = String(val).trim();
+
+            // 1. 已經是 YYYY-MM-DD 或 YYYY/MM/DD 開頭
+            const isoMatch = raw.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+            if (isoMatch) {
+                return `${isoMatch[1]}-${isoMatch[2].padStart(2, '0')}-${isoMatch[3].padStart(2, '0')}`;
             }
-            const dt = new Date(val);
-            if (!isNaN(dt.getTime())) {
+
+            // 2. 標準可解析的日期字串（含年份）
+            const dt = new Date(raw);
+            if (!isNaN(dt.getTime()) && /\d{4}/.test(raw)) {
                 return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
             }
-            return str;
+
+            // 3. 像 "Mon Nov 30" 或 "Nov 30" 這類沒有年份的英文日期
+            const monthMap = {
+                Jan: '01', Feb: '02', Mar: '03', Apr: '04', May: '05', Jun: '06',
+                Jul: '07', Aug: '08', Sep: '09', Oct: '10', Nov: '11', Dec: '12'
+            };
+            const engMatch = raw.match(/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{1,2})\b/i);
+            if (engMatch) {
+                const mKey = engMatch[1].charAt(0).toUpperCase() + engMatch[1].slice(1, 3).toLowerCase();
+                const mm = monthMap[mKey];
+                const dd = engMatch[2].padStart(2, '0');
+                const year = fallbackYear || (currentDisplayDate ? currentDisplayDate.getFullYear() : 2026);
+                return `${year}-${mm}-${dd}`;
+            }
+
+            return raw.split('T')[0];
         }
 
         function isApprovedStatus(statusVal) {
@@ -179,8 +198,8 @@
                         id: 'old_' + index,
                         name: (cols[0] || '').trim(),
                         type: (cols[1] || '請假').trim(),
-                        start: normalizeDateStr(cols[2]),
-                        end: normalizeDateStr(cols[3]) || normalizeDateStr(cols[2]),
+                        start: normalizeDateStr(cols[2], 2026),
+                        end: normalizeDateStr(cols[3], 2026) || normalizeDateStr(cols[2], 2026),
                         displayDuration: durStr,
                         rate: rate,
                         note: (cols[5] || '').trim()
@@ -197,15 +216,15 @@
                     if (jsonNew.status === 'success' && Array.isArray(jsonNew.data)) {
                         newRecords = jsonNew.data
                             .filter(row => {
-                                const startStr = normalizeDateStr(row.startTime);
+                                const startStr = normalizeDateStr(row.startTime, 2026);
                                 if (!startStr) return false;
                                 const leaveStart = new Date(startStr + 'T00:00:00');
                                 const isApproved = isApprovedStatus(row.status) || isApprovedStatus(row.step2Status);
                                 return leaveStart >= CUT_OFF_DATE && isApproved;
                             })
                             .map(row => {
-                                const startDate = normalizeDateStr(row.startTime);
-                                const endDate = normalizeDateStr(row.endTime) || startDate;
+                                const startDate = normalizeDateStr(row.startTime, 2026);
+                                const endDate = normalizeDateStr(row.endTime, 2026) || startDate;
                                 return {
                                     id: row.id,
                                     name: String(row.name || '').trim(),
@@ -231,8 +250,8 @@
                         tripRecords = jsonTrip.data
                             .filter(row => isApprovedStatus(row.status))
                             .map(row => {
-                                const startDate = normalizeDateStr(row.startDate || row.startTime || '');
-                                const endDate = normalizeDateStr(row.endDate || row.endTime || '') || startDate;
+                                const startDate = normalizeDateStr(row.startDate || row.startTime || '', 2026);
+                                const endDate = normalizeDateStr(row.endDate || row.endTime || '', 2026) || startDate;
                                 const location = String(row.route || row.reason || '').trim();
                                 return {
                                     id: row.id || ('trip_' + Math.random()),
