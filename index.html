@@ -89,9 +89,15 @@
     </div>
 
     <div class="suggestion-display-box">
-        <h3 style="margin-top:0; color: #e65100;">📋 公司活動建議內容</h3>
+        <h3 style="margin-top:0; color: #e65100;">📋 公司業務日誌</h3>
         <table id="suggestionTable">
-            <thead><tr><th style="width:25%">項目</th><th style="width:75%">建議詳情</th></tr></thead>
+            <thead>
+                <tr>
+                    <th style="width:20%">日期</th>
+                    <th style="width:20%">項目</th>
+                    <th style="width:60%">工作日誌內容</th>
+                </tr>
+            </thead>
             <tbody id="suggestionList"></tbody>
         </table>
     </div>
@@ -128,7 +134,8 @@
         ];
 
         let currentDisplayDate = new Date();
-        const SUGGEST_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSk18e6JMlqZrTZkMdMybrvXSX-HuZ5vLTawqbU116-Xwd9DHUf25hAjOO7HxQ6mJ6E6K0ll8Eu-Iy8/pub?gid=1793548004&single=true&output=csv';
+        // 已更新為指定的工作表 (gid=469968807) CSV 發布連結
+        const SUGGEST_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQsSgTxCHRQ0C1bGVPDauhJYlxqurA4ZTa34QQhG3Moh83AxU4zpr_QD4pX9VG6q6Hkj8M9T8j_hqc1/pub?gid=1142622904&single=true&output=csv';
         const GOOGLE_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSk18e6JMlqZrTZkMdMybrvXSX-HuZ5vLTawqbU116-Xwd9DHUf25hAjOO7HxQ6mJ6E6K0ll8Eu-Iy8/pub?gid=0&single=true&output=csv';
 
         // 請假系統 GAS API 網址
@@ -148,19 +155,16 @@
             if (!val) return '';
             const raw = String(val).trim();
 
-            // 1. 已經是 YYYY-MM-DD 或 YYYY/MM/DD 開頭
             const isoMatch = raw.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
             if (isoMatch) {
                 return `${isoMatch[1]}-${isoMatch[2].padStart(2, '0')}-${isoMatch[3].padStart(2, '0')}`;
             }
 
-            // 2. 標準可解析的日期字串（含年份）
             const dt = new Date(raw);
             if (!isNaN(dt.getTime()) && /\d{4}/.test(raw)) {
                 return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
             }
 
-            // 3. 像 "Mon Nov 30" 或 "Nov 30" 這類沒有年份的英文日期
             const monthMap = {
                 Jan: '01', Feb: '02', Mar: '03', Apr: '04', May: '05', Jun: '06',
                 Jul: '07', Aug: '08', Sep: '09', Oct: '10', Nov: '11', Dec: '12'
@@ -270,16 +274,21 @@
                     console.error("載入出差單紀錄失敗", err);
                 }
 
-                // 4. 合併舊請假、新請假、出差紀錄
+                // 4. 合併紀錄
                 leaveRecords = [...oldRecords, ...newRecords, ...tripRecords];
 
-                // 5. 抓取建議事項
+                // 5. 抓取公司業務日誌資料 (A欄:日期, B欄:項目, C欄:工作日誌內容)
                 const resS = await fetch(SUGGEST_CSV_URL);
                 const dataS = await resS.text();
                 const rowsS = dataS.split('\n').slice(1);
                 suggestions = rowsS.filter(r => r.trim() !== '').map(row => {
                     const cols = row.split(',');
-                    return { title: cols[0], content: cols[1] };
+                    // 若只有 2 欄則相容舊格式；有 3 欄時支援「日期, 項目, 工作日誌內容」
+                    if (cols.length >= 3) {
+                        return { date: cols[0].trim(), title: cols[1].trim(), content: cols[2].trim() };
+                    } else {
+                        return { date: '', title: cols[0] ? cols[0].trim() : '', content: cols[1] ? cols[1].trim() : '' };
+                    }
                 });
 
                 renderCalendar(currentDisplayDate.getFullYear(), currentDisplayDate.getMonth() + 1);
@@ -400,7 +409,11 @@
 
         function renderSuggestions() {
             document.getElementById('suggestionList').innerHTML = suggestions.map(s => {
-                return `<tr><td style="font-weight:bold;">${s.title}</td><td style="text-align:left; white-space:pre-wrap;">${s.content}</td></tr>`;
+                return `<tr>
+                    <td>${s.date || ''}</td>
+                    <td style="font-weight:bold;">${s.title || ''}</td>
+                    <td style="text-align:left; white-space:pre-wrap;">${s.content || ''}</td>
+                </tr>`;
             }).join('');
         }
 
