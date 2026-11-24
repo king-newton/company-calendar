@@ -89,7 +89,7 @@
     </div>
 
     <div class="suggestion-display-box">
-        <h3 style="margin-top:0; color: #e65100;">📋 公司業務日誌</h3>
+        <h3 style="margin-top:0; color: #e65100;">📋 工作日誌</h3>
         <table id="suggestionTable">
             <thead>
                 <tr>
@@ -315,7 +315,7 @@
                 // 4. 合併紀錄
                 leaveRecords = [...oldRecords, ...newRecords, ...tripRecords];
 
-                // 5. 抓取公司業務日誌資料 (A欄:日期, B欄:項目, C欄:工作日誌內容, D欄:工號, E欄:姓名)
+                // 5. 抓取工作日誌資料 (A欄:日期, B欄:項目, C欄:工作日誌內容, D欄:工號, E欄:姓名)
                 const resS = await fetch(`${SUGGEST_CSV_URL}&t=${new Date().getTime()}`);
                 const dataS = await resS.text();
                 const parsedRows = parseCSVText(dataS).slice(1);
