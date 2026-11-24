@@ -12,57 +12,11 @@
         select, input[type="date"], input[type="text"], input[type="number"], textarea {
             height: 40px; padding: 8px 12px; border: 1px solid #ced4da; border-radius: 4px; box-sizing: border-box; font-size: 14px; vertical-align: middle;
         }
-        textarea { height: 90px; resize: vertical; font-family: inherit; }
         table { width: 100%; border-collapse: collapse; background-color: white; margin-bottom: 20px; }
         th, td { border: 1px solid #dee2e6; padding: 10px; text-align: center; }
         th { background-color: #e3f2fd; color: #0d47a1; }
 
-        /* 捷徑列樣式 */
-        .shortcut-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; }
-        .shortcut-btn {
-            display: inline-flex; align-items: center; gap: 6px;
-            padding: 8px 16px; border-radius: 6px; font-size: 14px; font-weight: bold;
-            text-decoration: none; cursor: pointer; border: none; color: white;
-        }
-        .trip-shortcut { background-color: #00897b; }
-        .trip-shortcut:hover { background-color: #00695c; }
-        .worklog-shortcut { background-color: #ef6c00; }
-        .worklog-shortcut:hover { background-color: #e65100; }
-
-        /* 浮動視窗 (Modal) 樣式 */
-        .modal-backdrop {
-            display: none; position: fixed; inset: 0;
-            background: rgba(0, 0, 0, 0.5); z-index: 9999;
-            justify-content: center; align-items: center; padding: 15px;
-        }
-        .modal-backdrop.show { display: flex; }
-        .modal-box {
-            background: #ffffff; border-radius: 8px; width: 100%; max-width: 520px;
-            box-shadow: 0 8px 28px rgba(0,0,0,0.25); overflow: hidden;
-        }
-        .modal-header {
-            background: #0d47a1; color: #fff; padding: 14px 18px;
-            display: flex; justify-content: space-between; align-items: center;
-            font-size: 1.1em; font-weight: bold;
-        }
-        .modal-close {
-            background: transparent; border: none; color: #fff;
-            font-size: 1.4em; cursor: pointer; line-height: 1; padding: 0 4px;
-        }
-        .modal-body { padding: 18px; }
-        .form-group { margin-bottom: 14px; text-align: left; }
-        .form-group label { display: block; font-weight: bold; margin-bottom: 5px; color: #333; font-size: 14px; }
-        .form-group input, .form-group select, .form-group textarea { width: 100%; }
-        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .modal-footer {
-            padding: 12px 18px; background: #f8f9fa; border-top: 1px solid #dee2e6;
-            display: flex; justify-content: flex-end; gap: 10px;
-        }
-        .btn-cancel { background: #6c757d; color: #fff; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; }
-        .btn-submit { background: #2e7d32; color: #fff; border: none; padding: 8px 18px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        .btn-submit:disabled { background: #9e9e9e; cursor: not-allowed; }
-
-        #calendarContainer { margin-top: 15px; border: 1px solid #0d47a1; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border-radius: 8px; overflow: hidden; background: white; }
+        #calendarContainer { margin-top: 30px; border: 1px solid #0d47a1; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border-radius: 8px; overflow: hidden; background: white; }
         #calendarHeader { background-color: #0d47a1; color: white; padding: 15px; font-size: 1.5em; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
         #calendarHeader button { background: rgba(255,255,255,0.2); border: 1px solid white; color: white; padding: 5px 12px; cursor: pointer; border-radius: 4px; font-size: 0.6em; }
 
@@ -104,68 +58,14 @@
             .card { border: 1px solid #ccc; padding: 12px; margin-bottom: 8px; background: white; border-radius: 6px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
             .card-date { font-weight: bold; color: #0d47a1; border-bottom: 2px solid #e3f2fd; margin-bottom: 8px; font-size: 1.1em; display: flex; justify-content: space-between; }
             .card-weekend { color: #d32f2f; }
-            .form-row { grid-template-columns: 1fr; }
         }
 
-        @media print { .no-print, .action-section, #calendarHeader button, .shortcut-bar, .modal-backdrop { display: none !important; } }
+        @media print { .no-print, .action-section, #calendarHeader button { display: none !important; } }
     </style>
 </head>
 <body>
 
     <h2>📊 金牛頓公司活動行事曆</h2>
-
-    <!-- 出差單捷徑與右側工作日誌捷徑 -->
-    <div class="shortcut-bar no-print">
-        <a id="tripShortcutLink" href="business_trip.html" target="_blank" class="shortcut-btn trip-shortcut">✈️ 出差單</a>
-        <button type="button" onclick="openWorklogModal()" class="shortcut-btn worklog-shortcut">📝 工作日誌</button>
-    </div>
-
-    <!-- 工作日誌浮動輸入視窗 -->
-    <div id="worklogModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="worklogModalTitle">
-        <div class="modal-box">
-            <div class="modal-header">
-                <span id="worklogModalTitle">📝 新增工作日誌 / 拜訪客戶日誌</span>
-                <button type="button" class="modal-close" onclick="closeWorklogModal()" aria-label="關閉">&times;</button>
-            </div>
-            <form id="worklogForm" onsubmit="submitWorklog(event)">
-                <div class="modal-body">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="wlDate">日期 *</label>
-                            <input type="date" id="wlDate" name="date" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="wlCategory">項目 *</label>
-                            <select id="wlCategory" name="category" required>
-                                <option value="工作日誌">工作日誌</option>
-                                <option value="拜訪客戶日誌">拜訪客戶日誌</option>
-                                <option value="業務開發">業務開發</option>
-                                <option value="其他">其他</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="wlContent">工作日誌內容 *</label>
-                        <textarea id="wlContent" name="content" placeholder="請輸入今日工作重點、拜訪客戶對象、洽談內容或後續追蹤事項..." required></textarea>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="wlEmpId">工號 *</label>
-                            <input type="text" id="wlEmpId" name="empId" placeholder="例如：E020" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="wlEmpName">姓名 *</label>
-                            <input type="text" id="wlEmpName" name="empName" placeholder="請輸入姓名" required>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn-cancel" onclick="closeWorklogModal()">取消</button>
-                    <button type="submit" id="wlSubmitBtn" class="btn-submit">送出至 Google Sheet</button>
-                </div>
-            </form>
-        </div>
-    </div>
 
     <div id="calendarContainer">
         <div id="calendarHeader">
@@ -245,9 +145,6 @@
         // 出差系統 GAS API 網址
         const TRIP_GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxTS3PsYZxik44YUGnLxtfS9UsdlK-6P_EHrcHjONLoEqsD2sENhXyvQLGaEGzMfZAxZQ/exec';
 
-        // 工作日誌寫入 Google Sheet 用的 GAS Web App 網址（請填入部署後的 /exec 網址）
-        const WORKLOG_GAS_API_URL = 'https://script.google.com/macros/s/AKfycbyf5ysSbBQEXvUAVIBoGyj4XqCtNDV9qeMZtJNXYBTiwfsn-3ju2bLWHq1CyzyAC2jcQg/exec';
-
         const CUT_OFF_DATE = new Date('2026-11-06T00:00:00');
 
         const nameList = ["全部人員", "金牛頓", "ERIC", "何成偉", "方順黌", "王冠峯", "余品橋", "李佩娟", "高欣宜", "陳秀燕", "陳品鈞", "陳靖昂", "陳慧真", "曾晨杰", "楊添仰", "詹淑敏", "戴政宏", "蘇威丞"];
@@ -255,93 +152,48 @@
         let leaveRecords = [];
         let suggestions = [];
 
-        function getTodayStr() {
-            const d = new Date();
-            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-        }
-
-        function openWorklogModal() {
-            const dateInput = document.getElementById('wlDate');
-            if (!dateInput.value) dateInput.value = getTodayStr();
-            document.getElementById('worklogModal').classList.add('show');
-        }
-
-        function closeWorklogModal() {
-            document.getElementById('worklogModal').classList.remove('show');
-        }
-
-        // 支援含引號或逗號的簡易 CSV 列解析
-        function parseCSVRow(row) {
-            const result = [];
-            let current = '';
+        // 支援雙引號內含逗號與跨行換行的完整 CSV 解析器
+        function parseCSVText(text) {
+            const rows = [];
+            let row = [];
+            let cur = '';
             let inQuotes = false;
-            for (let i = 0; i < row.length; i++) {
-                const ch = row[i];
+
+            for (let i = 0; i < text.length; i++) {
+                const ch = text[i];
+                const next = text[i + 1];
                 if (ch === '"') {
-                    if (inQuotes && row[i + 1] === '"') {
-                        current += '"';
+                    if (inQuotes && next === '"') {
+                        cur += '"';
                         i++;
                     } else {
                         inQuotes = !inQuotes;
                     }
                 } else if (ch === ',' && !inQuotes) {
-                    result.push(current.trim());
-                    current = '';
+                    row.push(cur.trim());
+                    cur = '';
+                } else if ((ch === '\n' || ch === '\r') && !inQuotes) {
+                    if (ch === '\r' && next === '\n') i++;
+                    row.push(cur.trim());
+                    if (row.some(cell => cell !== '')) rows.push(row);
+                    row = [];
+                    cur = '';
                 } else {
-                    current += ch;
+                    cur += ch;
                 }
             }
-            result.push(current.trim());
-            return result;
-        }
-
-        async function submitWorklog(event) {
-            event.preventDefault();
-            const submitBtn = document.getElementById('wlSubmitBtn');
-            const payload = {
-                action: 'addWorklog',
-                date: document.getElementById('wlDate').value.trim(),
-                category: document.getElementById('wlCategory').value.trim(),
-                content: document.getElementById('wlContent').value.trim(),
-                empId: document.getElementById('wlEmpId').value.trim(),
-                empName: document.getElementById('wlEmpName').value.trim()
-            };
-
-            if (!WORKLOG_GAS_API_URL || WORKLOG_GAS_API_URL === 'YOUR_WORKLOG_GAS_WEB_APP_URL') {
-                alert('尚未設定工作日誌 Google Apps Script 網址（WORKLOG_GAS_API_URL），請先部署 GAS 後填入網址。');
-                return;
+            if (cur.length > 0 || row.length > 0) {
+                row.push(cur.trim());
+                if (row.some(cell => cell !== '')) rows.push(row);
             }
-
-            submitBtn.disabled = true;
-            submitBtn.textContent = '寫入中...';
-
-            try {
-                await fetch(WORKLOG_GAS_API_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify(payload)
-                });
-
-                alert('工作日誌已送出並寫入 Google Sheet！');
-                document.getElementById('worklogContent').value = '';
-                document.getElementById('wlContent').value = '';
-                closeWorklogModal();
-                setTimeout(() => fetchData(), 1200);
-            } catch (err) {
-                console.error('寫入工作日誌失敗', err);
-                alert('寫入時發生錯誤，請稍後再試。');
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.textContent = '送出至 Google Sheet';
-            }
+            return rows;
         }
 
         function normalizeDateStr(val, fallbackYear) {
             if (!val) return '';
             const raw = String(val).trim();
 
-            const isoMatch = raw.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+            const isoMatch = raw.match(/^(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})/);
             if (isoMatch) {
                 return `${isoMatch[1]}-${isoMatch[2].padStart(2, '0')}-${isoMatch[3].padStart(2, '0')}`;
             }
@@ -466,17 +318,14 @@
                 // 5. 抓取公司業務日誌資料 (A欄:日期, B欄:項目, C欄:工作日誌內容, D欄:工號, E欄:姓名)
                 const resS = await fetch(`${SUGGEST_CSV_URL}&t=${new Date().getTime()}`);
                 const dataS = await resS.text();
-                const rowsS = dataS.split(/\r?\n/).slice(1);
-                suggestions = rowsS.filter(r => r.trim() !== '').map(row => {
-                    const cols = parseCSVRow(row);
-                    return {
-                        date: cols[0] || '',
-                        title: cols[1] || '',
-                        content: cols[2] || '',
-                        empId: cols[3] || '',
-                        empName: cols[4] || ''
-                    };
-                });
+                const parsedRows = parseCSVText(dataS).slice(1);
+                suggestions = parsedRows.map(cols => ({
+                    date: cols[0] || '',
+                    title: cols[1] || '',
+                    content: cols[2] || '',
+                    empId: cols[3] || '',
+                    empName: cols[4] || ''
+                }));
 
                 renderCalendar(currentDisplayDate.getFullYear(), currentDisplayDate.getMonth() + 1);
                 renderSuggestions();
@@ -623,7 +472,6 @@
         document.addEventListener('DOMContentLoaded', () => {
             const qSel = document.getElementById('queryNameSelect');
             nameList.forEach(n => qSel.add(new Option(n, n)));
-            document.getElementById('wlDate').value = getTodayStr();
             fetchData();
         });
     </script>
