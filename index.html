@@ -33,6 +33,13 @@
         .golden-record { background-color: #0d47a1 !important; color: white !important; }
         .holiday-record { background-color: #e91e63 !important; color: white !important; }
 
+        /* 今日打卡紀錄區塊樣式 */
+        .punch-display-box { background-color: #ffffff; border: 2px solid #26a69a; border-radius: 8px; padding: 20px; margin-top: 30px; }
+        .punch-header-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
+        .punch-refresh-btn { background: #00897b; color: white; border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 14px; }
+        .punch-refresh-btn:hover { background: #00695c; }
+        .punch-badge { display: inline-block; background: #e0f2f1; color: #00695c; font-weight: bold; padding: 2px 10px; border-radius: 999px; font-size: 13px; }
+
         .suggestion-display-box { background-color: #ffffff; border: 2px solid #ffb74d; border-radius: 8px; padding: 20px; margin-top: 30px; }
         .action-section { background: white; padding: 20px; border: 1px solid #ccc; border-radius: 8px; margin-top: 20px; }
 
@@ -58,6 +65,46 @@
             .card { border: 1px solid #ccc; padding: 12px; margin-bottom: 8px; background: white; border-radius: 6px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
             .card-date { font-weight: bold; color: #0d47a1; border-bottom: 2px solid #e3f2fd; margin-bottom: 8px; font-size: 1.1em; display: flex; justify-content: space-between; }
             .card-weekend { color: #d32f2f; }
+
+            /* 手機版今日打卡卡片樣式 */
+            .punch-display-box {
+                padding: 12px !important;
+            }
+            #punchTable thead {
+                display: none;
+            }
+            #punchTable, #punchTable tbody, #punchTable tr, #punchTable td {
+                display: block;
+                width: 100% !important;
+                box-sizing: border-box;
+            }
+            #punchTable tr {
+                border: 1px solid #b2dfdb;
+                border-radius: 6px;
+                padding: 10px 12px;
+                margin-bottom: 12px;
+                background: #f4fbfa;
+                box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+            }
+            #punchTable td {
+                border: none !important;
+                padding: 4px 0 !important;
+                text-align: left !important;
+                font-size: 14px;
+                line-height: 1.6;
+            }
+            #punchTable td::before {
+                content: attr(data-label) "：";
+                font-weight: bold;
+                color: #00695c;
+                margin-right: 4px;
+            }
+            #punchTable td[data-label="打卡位置"] {
+                margin-top: 4px;
+                padding-top: 6px !important;
+                border-top: 1px dashed #80cbc4 !important;
+                word-break: break-word;
+            }
 
             /* 手機版工作日誌卡片樣式 */
             .suggestion-display-box {
@@ -101,7 +148,7 @@
             }
         }
 
-        @media print { .no-print, .action-section, #calendarHeader button { display: none !important; } }
+        @media print { .no-print, .action-section, #calendarHeader button, .punch-refresh-btn { display: none !important; } }
     </style>
 </head>
 <body>
@@ -127,6 +174,29 @@
             <tbody id="calendarBody"></tbody>
         </table>
         <div id="mobileCards"></div>
+    </div>
+
+    <!-- 今日打卡紀錄區塊（位於工作日誌區塊之上） -->
+    <div class="punch-display-box">
+        <div class="punch-header-row">
+            <h3 style="margin:0; color: #00695c;">🕒 今日打卡紀錄 <span id="todayPunchDateLabel" style="font-size: 0.85em; font-weight: normal; color: #555;"></span></h3>
+            <button type="button" class="punch-refresh-btn" onclick="fetchTodayPunchRecords()">🔄 重新整理</button>
+        </div>
+        <table id="punchTable" style="margin-bottom:0;">
+            <thead>
+                <tr>
+                    <th style="width:22%; background-color:#e0f2f1; color:#00695c;">打卡時間</th>
+                    <th style="width:16%; background-color:#e0f2f1; color:#00695c;">姓名</th>
+                    <th style="width:16%; background-color:#e0f2f1; color:#00695c;">出勤狀態</th>
+                    <th style="width:46%; background-color:#e0f2f1; color:#00695c;">打卡位置</th>
+                </tr>
+            </thead>
+            <tbody id="todayPunchList">
+                <tr>
+                    <td colspan="4" style="color:#666;">載入今日打卡紀錄中...</td>
+                </tr>
+            </tbody>
+        </table>
     </div>
 
     <div class="suggestion-display-box">
@@ -185,6 +255,9 @@
 
         // 出差系統 GAS API 網址
         const TRIP_GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxTS3PsYZxik44YUGnLxtfS9UsdlK-6P_EHrcHjONLoEqsD2sENhXyvQLGaEGzMfZAxZQ/exec';
+
+        // 每日出勤打卡 GAS API 網址
+        const PUNCH_GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxGzLW4QUO3DCSSoTtEhosM8bmAigYN7rSpdirkmU9BrQdkxQX2KA7-UvCepSiS1KHDsQ/exec';
 
         const CUT_OFF_DATE = new Date('2026-11-06T00:00:00');
 
@@ -258,6 +331,76 @@
             }
 
             return raw.split('T')[0];
+        }
+
+        function getTodayStr() {
+            const now = new Date();
+            return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        }
+
+        function escapeHtml(str) {
+            return String(str || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        async function fetchTodayPunchRecords() {
+            const tbody = document.getElementById('todayPunchList');
+            const dateLabel = document.getElementById('todayPunchDateLabel');
+            const todayStr = getTodayStr();
+            if (dateLabel) {
+                dateLabel.textContent = `（${todayStr}）`;
+            }
+            if (!tbody) return;
+
+            tbody.innerHTML = `<tr><td colspan="4" style="color:#666;">正在讀取今日打卡紀錄...</td></tr>`;
+
+            try {
+                const url = `${PUNCH_GAS_API_URL}?action=todayRecords&date=${encodeURIComponent(todayStr)}&_t=${Date.now()}`;
+                const res = await fetch(url);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+                const data = await res.json();
+                const rawList = Array.isArray(data)
+                    ? data
+                    : (Array.isArray(data.records) ? data.records : []);
+
+                const todayRecords = rawList
+                    .filter(item => normalizeDateStr(item.time || item.date || '', new Date().getFullYear()) === todayStr)
+                    .reverse();
+
+                renderTodayPunchRecords(todayRecords, todayStr);
+            } catch (err) {
+                console.error('載入今日打卡紀錄失敗', err);
+                tbody.innerHTML = `<tr><td colspan="4" style="color:#d32f2f;">⚠️ 無法讀取今日打卡紀錄，請確認打卡後端服務狀態。</td></tr>`;
+            }
+        }
+
+        function renderTodayPunchRecords(records, todayStr) {
+            const tbody = document.getElementById('todayPunchList');
+            if (!tbody) return;
+
+            if (!records.length) {
+                tbody.innerHTML = `<tr><td colspan="4" style="color:#777;">${escapeHtml(todayStr)} 尚無打卡紀錄</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = records.map(item => {
+                const timeText = escapeHtml(item.time || '');
+                const nameText = escapeHtml(item.name || '');
+                const statusText = escapeHtml(item.status || '');
+                const locText = escapeHtml(item.location || '');
+
+                return `<tr>
+                    <td data-label="打卡時間">${timeText}</td>
+                    <td data-label="姓名" style="font-weight:bold;">${nameText}</td>
+                    <td data-label="出勤狀態"><span class="punch-badge">${statusText}</span></td>
+                    <td data-label="打卡位置" style="text-align:left;">${locText}</td>
+                </tr>`;
+            }).join('');
         }
 
         function isApprovedStatus(statusVal) {
@@ -370,8 +513,10 @@
 
                 renderCalendar(currentDisplayDate.getFullYear(), currentDisplayDate.getMonth() + 1);
                 renderSuggestions();
+                fetchTodayPunchRecords();
             } catch (e) {
                 console.error("資料讀取失敗", e);
+                fetchTodayPunchRecords();
             }
         }
 
